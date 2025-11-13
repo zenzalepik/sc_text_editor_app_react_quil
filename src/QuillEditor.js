@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
-import './QuillEditor.css';
 
 const QuillEditor = () => {
   const editorRef = useRef(null);
   const quillInstance = useRef(null);
+  const fileInputRef = useRef(null);
   const [fileName, setFileName] = useState('document-saya');
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
@@ -58,7 +58,7 @@ const QuillEditor = () => {
             handlers: {
               // Custom handler untuk image
               'image': function() {
-                const url = prompt('Enter image URL:');
+                const url = prompt('Masukkan URL gambar:');
                 if (url) {
                   const range = this.quill.getSelection();
                   this.quill.insertEmbed(range.index, 'image', url);
@@ -143,6 +143,7 @@ const QuillEditor = () => {
           <li>Multiple font family dan size</li>
           <li>Lists dan alignment</li>
           <li>Insert link dan gambar</li>
+          <li>Import/Export file</li>
         </ul>
       `;
     }
@@ -155,29 +156,173 @@ const QuillEditor = () => {
     };
   }, []);
 
-  // Download sebagai HTML
- // Download sebagai HTML - VERSI DIPERBAIKI
-const downloadHTML = () => {
-  if (!quillInstance.current) return;
+  // Import file HTML atau TXT
+  const importFile = () => {
+    fileInputRef.current?.click();
+  };
 
-  const element = document.createElement('a');
-  const content = quillInstance.current.root.innerHTML;
-  
-  // Ambil semua CSS dari Quill
-  const quillStyles = Array.from(document.styleSheets)
-    .filter(sheet => sheet.href === null || sheet.href.includes('quill'))
-    .map(sheet => {
-      try {
-        return Array.from(sheet.cssRules)
-          .map(rule => rule.cssText)
-          .join('\n');
-      } catch (e) {
-        return '';
+  // Handle file selection
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      const content = e.target.result;
+      
+      if (file.type === 'text/html' || file.name.endsWith('.html')) {
+        // Import HTML file
+        importHTMLContent(content, file.name);
+      } else if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+        // Import TXT file
+        importTXTContent(content, file.name);
+      } else {
+        alert('Format file tidak didukung. Silakan pilih file HTML atau TXT.');
       }
-    })
-    .join('\n');
+    };
+    
+    reader.readAsText(file);
+    
+    // Reset input
+    event.target.value = '';
+  };
 
-  const fileContent = `
+  // Import HTML content
+  const importHTMLContent = (htmlContent, filename) => {
+    try {
+      // Extract content from HTML file
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlContent;
+      
+      // Try to find content in different possible locations
+      let content = '';
+      
+      // Look for .ql-editor first (Quill format)
+      const quillEditor = tempDiv.querySelector('.ql-editor');
+      if (quillEditor) {
+        content = quillEditor.innerHTML;
+      } 
+      // Look for .editor-content
+      else if (tempDiv.querySelector('.editor-content')) {
+        content = tempDiv.querySelector('.editor-content').innerHTML;
+      }
+      // Look for body content directly
+      else if (tempDiv.querySelector('body')) {
+        const bodyContent = tempDiv.querySelector('body').innerHTML;
+        // Remove footer if exists
+        content = bodyContent.replace(/<div style="text-align: center[^>]*>.*?<\/div>/g, '');
+      }
+      // Fallback to entire content
+      else {
+        content = htmlContent;
+      }
+      
+      // Clean up the filename for display
+      const cleanFileName = filename.replace('.html', '').replace('.txt', '');
+      setFileName(cleanFileName);
+      
+      // Set content to editor
+      if (quillInstance.current) {
+        quillInstance.current.root.innerHTML = content;
+      }
+      
+      alert('File HTML berhasil diimpor!');
+    } catch (error) {
+      console.error('Error importing HTML:', error);
+      alert('Gagal mengimpor file HTML. Pastikan file berasal dari export editor ini.');
+    }
+  };
+
+  // Import TXT content
+  const importTXTContent = (textContent, filename) => {
+    try {
+      // Clean up the filename for display
+      const cleanFileName = filename.replace('.html', '').replace('.txt', '');
+      setFileName(cleanFileName);
+      
+      // Convert plain text to HTML (basic conversion)
+      const htmlContent = textContent
+        .split('\n')
+        .map(line => {
+          if (line.trim() === '') return '<p><br></p>';
+          return `<p>${line}</p>`;
+        })
+        .join('');
+      
+      // Set content to editor
+      if (quillInstance.current) {
+        quillInstance.current.root.innerHTML = htmlContent;
+      }
+      
+      alert('File TXT berhasil diimpor!');
+    } catch (error) {
+      console.error('Error importing TXT:', error);
+      alert('Gagal mengimpor file TXT.');
+    }
+  };
+
+  // Convert class-based styles to inline styles untuk export
+  const convertToInlineStyles = (htmlContent) => {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+
+    const applyInlineStyles = (element) => {
+      // Font families
+      if (element.classList.contains('ql-font-arial')) {
+        element.style.fontFamily = 'Arial, sans-serif';
+      }
+      if (element.classList.contains('ql-font-times-new-roman')) {
+        element.style.fontFamily = "'Times New Roman', serif";
+      }
+      if (element.classList.contains('ql-font-courier-new')) {
+        element.style.fontFamily = "'Courier New', monospace";
+      }
+      if (element.classList.contains('ql-font-georgia')) {
+        element.style.fontFamily = 'Georgia, serif';
+      }
+
+      // Font sizes
+      if (element.classList.contains('ql-size-small')) {
+        element.style.fontSize = '0.75em';
+      }
+      if (element.classList.contains('ql-size-large')) {
+        element.style.fontSize = '1.5em';
+      }
+      if (element.classList.contains('ql-size-huge')) {
+        element.style.fontSize = '2.5em';
+      }
+
+      // Alignment
+      if (element.classList.contains('ql-align-center')) {
+        element.style.textAlign = 'center';
+      }
+      if (element.classList.contains('ql-align-right')) {
+        element.style.textAlign = 'right';
+      }
+      if (element.classList.contains('ql-align-justify')) {
+        element.style.textAlign = 'justify';
+      }
+
+      // Process child elements
+      Array.from(element.children).forEach(applyInlineStyles);
+    };
+
+    applyInlineStyles(tempDiv);
+    return tempDiv.innerHTML;
+  };
+
+  // Download sebagai HTML
+  const downloadHTML = () => {
+    if (!quillInstance.current) return;
+
+    const element = document.createElement('a');
+    let content = quillInstance.current.root.innerHTML;
+    
+    // Convert class-based styles to inline styles
+    content = convertToInlineStyles(content);
+
+    const fileContent = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -185,232 +330,91 @@ const downloadHTML = () => {
     <title>${fileName}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        /* QUILL CORE STYLES */
-        .ql-editor {
-          box-sizing: border-box;
-          line-height: 1.42;
-          height: 100%;
-          outline: none;
-          overflow-y: auto;
-          padding: 12px 15px;
-          tab-size: 4;
-          -moz-tab-size: 4;
-          text-align: left;
-          white-space: pre-wrap;
-          word-wrap: break-word;
-        }
-
-        .ql-editor p,
-        .ql-editor ol,
-        .ql-editor ul,
-        .ql-editor pre,
-        .ql-editor blockquote,
-        .ql-editor h1,
-        .ql-editor h2,
-        .ql-editor h3,
-        .ql-editor h4,
-        .ql-editor h5,
-        .ql-editor h6 {
-          margin: 0;
-          padding: 0;
-          counter-reset: list-1 list-2 list-3 list-4 list-5 list-6 list-7 list-8 list-9;
-        }
-
-        .ql-editor ol,
-        .ql-editor ul {
-          padding-left: 1.5em;
-        }
-
-        .ql-editor ol > li,
-        .ql-editor ul > li {
-          list-style-type: none;
-        }
-
-        .ql-editor ul > li::before {
-          content: '\\2022';
-        }
-
-        .ql-editor ul[data-checked=true],
-        .ql-editor ul[data-checked=false] {
-          pointer-events: none;
-        }
-
-        .ql-editor ul[data-checked=true] > li *,
-        .ql-editor ul[data-checked=false] > li * {
-          pointer-events: all;
-        }
-
-        .ql-editor ul[data-checked=true] > li::before,
-        .ql-editor ul[data-checked=false] > li::before {
-          color: #777;
-          cursor: pointer;
-          pointer-events: all;
-        }
-
-        .ql-editor ul[data-checked=true] > li::before {
-          content: '\\\\2611';
-        }
-
-        .ql-editor ul[data-checked=false] > li::before {
-          content: '\\\\2610';
-        }
-
-        .ql-editor li::before {
-          display: inline-block;
-          white-space: nowrap;
-          width: 1.2em;
-        }
-
-        .ql-editor li:not(.ql-direction-rtl)::before {
-          margin-left: -1.5em;
-          margin-right: 0.3em;
-          text-align: right;
-        }
-
-        .ql-editor ol li:not(.ql-direction-rtl),
-        .ql-editor ul li:not(.ql-direction-rtl) {
-          padding-left: 1.5em;
-        }
-
-        .ql-editor ol li {
-          counter-reset: list-1 list-2 list-3 list-4 list-5 list-6 list-7 list-8 list-9;
-          counter-increment: list-0;
-        }
-
-        .ql-editor ol li:before {
-          content: counter(list-0, decimal) '. ';
-        }
-
-        .ql-editor ol li.ql-indent-1 {
-          counter-increment: list-1;
-        }
-
-        .ql-editor ol li.ql-indent-1:before {
-          content: counter(list-1, lower-alpha) '. ';
-        }
-
-        .ql-editor ol li.ql-indent-2 {
-          counter-increment: list-2;
-        }
-
-        .ql-editor ol li.ql-indent-2:before {
-          content: counter(list-2, lower-roman) '. ';
-        }
-
-        /* TEXT FORMATTING */
-        .ql-editor .ql-font-arial { font-family: Arial, sans-serif; }
-        .ql-editor .ql-font-times-new-roman { font-family: 'Times New Roman', serif; }
-        .ql-editor .ql-font-courier-new { font-family: 'Courier New', monospace; }
-        .ql-editor .ql-font-georgia { font-family: Georgia, serif; }
-        
-        .ql-editor .ql-size-small { font-size: 0.75em; }
-        .ql-editor .ql-size-large { font-size: 1.5em; }
-        .ql-editor .ql-size-huge { font-size: 2.5em; }
-        
-        .ql-editor strong { font-weight: bold; }
-        .ql-editor em { font-style: italic; }
-        .ql-editor u { text-decoration: underline; }
-        .ql-editor strike { text-decoration: line-through; }
-
-        /* ALIGNMENT */
-        .ql-editor .ql-align-center { text-align: center; }
-        .ql-editor .ql-align-justify { text-align: justify; }
-        .ql-editor .ql-align-right { text-align: right; }
-
-        /* HEADERS */
-        .ql-editor h1 { 
-          font-size: 2em; 
-          font-weight: bold;
-          margin-bottom: 0.5em;
-          color: #1f2937;
-        }
-        .ql-editor h2 { 
-          font-size: 1.5em; 
-          font-weight: bold;
-          margin-bottom: 0.5em;
-          color: #374151;
-        }
-        .ql-editor h3 { 
-          font-size: 1.17em; 
-          font-weight: bold;
-          margin-bottom: 0.5em;
-          color: #4b5563;
-        }
-
-        /* LISTS */
-        .ql-editor ol, .ql-editor ul {
-          margin-bottom: 1em;
-          margin-left: 1.5em;
-        }
-        
-        .ql-editor li {
-          margin-bottom: 0.25em;
-        }
-
-        /* BLOCKQUOTE */
-        .ql-editor blockquote {
-          border-left: 4px solid #3b82f6;
-          margin: 1em 0;
-          padding-left: 1em;
-          color: #6b7280;
-          font-style: italic;
-        }
-
-        /* CODE */
-        .ql-editor .ql-code-block-container {
-          background: #f3f4f6;
-          border-radius: 4px;
-          margin: 1em 0;
-          padding: 1em;
-        }
-
-        .ql-editor .ql-syntax {
-          background-color: #1f2937;
-          color: #f3f4f6;
-          overflow: visible;
-          font-family: 'Courier New', monospace;
-          padding: 1em;
-          border-radius: 4px;
-        }
-
-        /* CUSTOM STYLES FOR EXPORT */
         body {
-          font-family: Arial, sans-serif;
-          line-height: 1.6;
-          padding: 20px;
-          max-width: 800px;
-          margin: 0 auto;
-          background-color: #f9fafb;
-          color: #374151;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #f9fafb;
+            color: #374151;
         }
         
         .editor-content {
-          background: white;
-          padding: 40px;
-          border-radius: 12px;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-          border: 1px solid #e5e7eb;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
         }
         
-        .editor-content .ql-editor {
-          padding: 0 !important;
-          background: transparent !important;
+        h1 { 
+            font-size: 2em; 
+            font-weight: bold;
+            margin-bottom: 0.5em;
+            color: #1f2937;
         }
         
-        .editor-content p {
-          margin-bottom: 1em;
+        h2 { 
+            font-size: 1.5em; 
+            font-weight: bold;
+            margin-bottom: 0.5em;
+            color: #374151;
         }
         
-        .editor-content ul, .editor-content ol {
-          margin-bottom: 1em;
+        h3 { 
+            font-size: 1.17em; 
+            font-weight: bold;
+            margin-bottom: 0.5em;
+            color: #4b5563;
+        }
+        
+        p {
+            margin-bottom: 1em;
+        }
+        
+        ul, ol {
+            margin-bottom: 1em;
+            margin-left: 1.5em;
+        }
+        
+        li {
+            margin-bottom: 0.25em;
+        }
+        
+        strong { 
+            font-weight: bold; 
+            color: #1f2937;
+        }
+        
+        em { 
+            font-style: italic; 
+            color: #6b7280;
+        }
+        
+        u { 
+            text-decoration: underline; 
+        }
+        
+        blockquote {
+            border-left: 4px solid #3b82f6;
+            margin: 1em 0;
+            padding-left: 1em;
+            color: #6b7280;
+            font-style: italic;
+        }
+        
+        code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
         }
     </style>
 </head>
 <body>
     <div class="editor-content">
-        <div class="ql-editor">
-            ${content}
-        </div>
+        ${content}
     </div>
     <div style="text-align: center; margin-top: 30px; color: #9ca3af; font-size: 14px;">
         Dibuat dengan Quill.js Rich Text Editor - ${new Date().toLocaleDateString('id-ID')}
@@ -418,13 +422,13 @@ const downloadHTML = () => {
 </body>
 </html>`;
   
-  const file = new Blob([fileContent], { type: 'text/html' });
-  element.href = URL.createObjectURL(file);
-  element.download = `${fileName}.html`;
-  document.body.appendChild(element);
-  element.click();
-  document.body.removeChild(element);
-};
+    const file = new Blob([fileContent], { type: 'text/html' });
+    element.href = URL.createObjectURL(file);
+    element.download = `${fileName}.html`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
 
   // Download sebagai Text
   const downloadText = () => {
@@ -444,6 +448,7 @@ const downloadHTML = () => {
   const clearEditor = () => {
     if (window.confirm('Yakin ingin menghapus semua teks?')) {
       quillInstance.current.setText('');
+      setFileName('document-saya');
     }
   };
 
@@ -492,6 +497,22 @@ const downloadHTML = () => {
           {/* Action Buttons */}
           <div className="border-t bg-gray-50 p-4">
             <div className="flex gap-3 justify-center flex-wrap">
+              {/* Hidden file input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                accept=".html,.txt,text/html,text/plain"
+                style={{ display: 'none' }}
+              />
+              
+              <button
+                onClick={importFile}
+                className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center gap-2"
+              >
+                📂 Import File
+              </button>
+              
               <button
                 onClick={downloadHTML}
                 className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
@@ -522,21 +543,21 @@ const downloadHTML = () => {
             <h3 className="font-bold mb-4 text-lg">🎯 Cara Menggunakan:</h3>
             <div className="grid md:grid-cols-2 gap-4 text-left">
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mt-1 flex-shrink-0">1</div>
+                <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs mt-1 flex-shrink-0">1</div>
+                <div>
+                  <strong>Import File</strong> HTML/TXT yang sebelumnya diexport
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mt-1 flex-shrink-0">2</div>
                 <div>
                   <strong>Blok teks</strong> yang ingin diformat dengan mouse
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs mt-1 flex-shrink-0">2</div>
+                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs mt-1 flex-shrink-0">3</div>
                 <div>
                   <strong>Pilih tool</strong> dari toolbar di atas
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs mt-1 flex-shrink-0">3</div>
-                <div>
-                  <strong>Hanya teks terblok</strong> yang akan berubah formatnya
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -547,9 +568,10 @@ const downloadHTML = () => {
               </div>
             </div>
             
-            <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-              <p className="text-yellow-800 text-sm">
-                <strong>💡 Tips:</strong> Coba blok beberapa kata, lalu ganti warna, font size, atau tambahkan bold/italic!
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-blue-800 text-sm">
+                <strong>🔄 Fitur Baru:</strong> Sekarang bisa import file HTML/TXT yang sebelumnya diexport dari editor ini!
+                Formatting akan dipertahankan saat import/export.
               </p>
             </div>
           </div>

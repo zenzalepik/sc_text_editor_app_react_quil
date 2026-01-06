@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { useQuillEditor } from "../hooks/useQuillEditor";
 import { useFileHandling } from "../hooks/useFileHandling";
 import { useAutoSave } from "../hooks/useAutoSave";
@@ -10,6 +10,7 @@ import ZaIntructions from "./ZaIntructions";
 const QuillEditor = () => {
   const editorRef = useRef(null);
   const fileInputRef = useRef(null);
+  const [focusMode, setFocusMode] = useState(false);
 
   // Gunakan custom hooks
   const { quillInstance, wordCount, charCount } = useQuillEditor(editorRef);
@@ -42,6 +43,11 @@ const QuillEditor = () => {
     fileInputRef.current?.click();
   };
 
+  // Toggle focus mode
+  const toggleFocusMode = () => {
+    setFocusMode(!focusMode);
+  };
+
   // Format waktu terakhir disimpan
   const formatLastSaved = (date) => {
     if (!date) return null;
@@ -72,22 +78,43 @@ const QuillEditor = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 p-4">
+      {/* Focus Mode Toggle Button - Fixed Position */}
+      <button
+        onClick={toggleFocusMode}
+        className="fixed top-4 right-4 z-50 bg-gradient-to-r from-violet-600 to-purple-600 text-white px-4 py-2 rounded-full shadow-lg hover:from-violet-700 hover:to-purple-700 transition-all duration-300 font-medium flex items-center gap-2 text-sm"
+        style={{
+          boxShadow: '0 4px 15px rgba(139, 92, 246, 0.4)',
+        }}
+        title={focusMode ? "Tampilkan Header" : "Sembunyikan Header"}
+      >
+        {focusMode ? "☰ Tampilkan" : "🎯 Mode Fokus"}
+      </button>
+
       <ZaWarning />
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <ZaHeader
-          fileName={fileName}
-          setFileName={setFileName}
-          importFile={importFile}
-          fileInputRef={fileInputRef}
-          handleFileSelect={handleFileSelect}
-          downloadHTML={downloadHTML}
-          downloadText={downloadText}
-          clearEditor={clearEditor}
-          isFullscreen={isFullscreen}
-          toggleFullscreen={toggleFullscreen}
-          forceSave={forceSave}
-        />
+        {/* Header - Hidden when focusMode is true */}
+        <div
+          style={{
+            maxHeight: focusMode ? '0px' : '500px',
+            opacity: focusMode ? 0 : 1,
+            overflow: 'hidden',
+            transition: 'all 0.3s ease-in-out',
+          }}
+        >
+          <ZaHeader
+            fileName={fileName}
+            setFileName={setFileName}
+            importFile={importFile}
+            fileInputRef={fileInputRef}
+            handleFileSelect={handleFileSelect}
+            downloadHTML={downloadHTML}
+            downloadText={downloadText}
+            clearEditor={clearEditor}
+            isFullscreen={isFullscreen}
+            toggleFullscreen={toggleFullscreen}
+            forceSave={forceSave}
+          />
+        </div>
 
         {/* Main Container */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
@@ -117,11 +144,21 @@ const QuillEditor = () => {
           />
         </div>
 
-        {/* Instructions */}
-        <ZaIntructions />
+        {/* Instructions - Hidden when focusMode is true */}
+        <div
+          style={{
+            maxHeight: focusMode ? '0px' : '500px',
+            opacity: focusMode ? 0 : 1,
+            overflow: 'hidden',
+            transition: 'all 0.3s ease-in-out',
+          }}
+        >
+          <ZaIntructions />
+        </div>
       </div>
     </div>
   );
 };
 
 export default QuillEditor;
+

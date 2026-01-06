@@ -17,7 +17,10 @@ export default function ZaActions({
 }) {
   return (
     <div className="border-t bg-gray-50 p-4">
-      <div className="flex gap-3 justify-center flex-wrap">
+      <div
+        className="flex gap-3 justify-center flex-wrap"
+        style={{ transform: "scale(0.8)", transformOrigin: "center center" }}
+      >
         {/* Hidden file input */}
         <input
           type="file"
@@ -42,7 +45,7 @@ export default function ZaActions({
           className="bg-amber-600 text-white px-6 py-3 rounded-lg hover:bg-amber-700 transition-colors font-medium flex items-center gap-2"
           title="Simpan sekarang"
         >
-          💾 Save Now
+          💾 Save Draft
         </button>
 
         <button
@@ -56,7 +59,7 @@ export default function ZaActions({
           onClick={downloadHTML}
           className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
         >
-          💾 Download HTML
+          ⬇️ Download HTML
         </button>
 
         <button
@@ -76,4 +79,5 @@ export default function ZaActions({
     </div>
   );
 }
+
 

@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
-import Strings from "../utils/strings.js";
+import React from "react";
 
 export default function ZaActions({
   fileName,
@@ -12,6 +11,9 @@ export default function ZaActions({
   clearEditor,
   fileInputRef,
   importFile,
+  isFullscreen,
+  toggleFullscreen,
+  forceSave,
 }) {
   return (
     <div className="border-t bg-gray-50 p-4">
@@ -24,6 +26,24 @@ export default function ZaActions({
           accept=".html,.txt,text/html,text/plain"
           style={{ display: "none" }}
         />
+
+        {/* Fullscreen Toggle Button */}
+        <button
+          onClick={toggleFullscreen}
+          className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center gap-2"
+          title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+        >
+          {isFullscreen ? "🗗 Exit Fullscreen" : "⛶ Fullscreen"}
+        </button>
+
+        {/* Manual Save Button */}
+        <button
+          onClick={forceSave}
+          className="bg-amber-600 text-white px-6 py-3 rounded-lg hover:bg-amber-700 transition-colors font-medium flex items-center gap-2"
+          title="Simpan sekarang"
+        >
+          💾 Save Now
+        </button>
 
         <button
           onClick={importFile}
@@ -56,3 +76,4 @@ export default function ZaActions({
     </div>
   );
 }
+

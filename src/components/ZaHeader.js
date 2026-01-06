@@ -13,6 +13,9 @@ export default function ZaHeader({
   downloadHTML,
   downloadText,
   clearEditor,
+  isFullscreen,
+  toggleFullscreen,
+  forceSave,
 }) {
   return (
     <div className="flex items-center gap-8 mb-8 justify-between">
@@ -40,7 +43,11 @@ export default function ZaHeader({
         downloadHTML={downloadHTML}
         downloadText={downloadText}
         clearEditor={clearEditor}
+        isFullscreen={isFullscreen}
+        toggleFullscreen={toggleFullscreen}
+        forceSave={forceSave}
       />
     </div>
   );
 }
+

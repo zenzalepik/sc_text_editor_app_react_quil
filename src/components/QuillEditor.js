@@ -1,7 +1,8 @@
 import React, { useRef } from "react";
 import { useQuillEditor } from "../hooks/useQuillEditor";
 import { useFileHandling } from "../hooks/useFileHandling";
-import Strings from "../utils/strings";
+import { useAutoSave } from "../hooks/useAutoSave";
+import { useFullscreen } from "../hooks/useFullscreen";
 import ZaWarning from "./ZaWarning";
 import ZaHeader from "./ZaHeader";
 import ZaIntructions from "./ZaIntructions";
@@ -18,11 +19,55 @@ const QuillEditor = () => {
     handleFileSelect,
     downloadHTML,
     downloadText,
-    clearEditor,
+    clearEditor: originalClearEditor,
   } = useFileHandling(quillInstance);
+
+  // Auto-save hook
+  const { saveStatus, lastSaved, forceSave, clearSavedDocument } = useAutoSave(
+    quillInstance,
+    fileName,
+    setFileName
+  );
+
+  // Fullscreen hook
+  const { isFullscreen, toggleFullscreen } = useFullscreen();
+
+  // Clear editor dengan juga menghapus dari IndexedDB
+  const clearEditor = () => {
+    originalClearEditor();
+    clearSavedDocument();
+  };
 
   const importFile = () => {
     fileInputRef.current?.click();
+  };
+
+  // Format waktu terakhir disimpan
+  const formatLastSaved = (date) => {
+    if (!date) return null;
+    return date.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
+  // Status save indicator
+  const getSaveIndicator = () => {
+    switch (saveStatus) {
+      case 'saving':
+        return <span className="text-yellow-300 animate-pulse">💾 Menyimpan...</span>;
+      case 'saved':
+        return (
+          <span className="text-green-300">
+            ✅ Tersimpan {lastSaved ? `(${formatLastSaved(lastSaved)})` : ''}
+          </span>
+        );
+      case 'error':
+        return <span className="text-red-300">❌ Gagal menyimpan</span>;
+      default:
+        return <span className="text-gray-400">⏳ Menunggu...</span>;
+    }
   };
 
   return (
@@ -30,16 +75,19 @@ const QuillEditor = () => {
       <ZaWarning />
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <ZaHeader 
-            fileName={fileName}
-            setFileName={setFileName}
-            importFile={importFile}
-            fileInputRef={fileInputRef}
-            handleFileSelect={handleFileSelect}
-            downloadHTML={downloadHTML}
-            downloadText={downloadText}
-            clearEditor={clearEditor}
-            />
+        <ZaHeader
+          fileName={fileName}
+          setFileName={setFileName}
+          importFile={importFile}
+          fileInputRef={fileInputRef}
+          handleFileSelect={handleFileSelect}
+          downloadHTML={downloadHTML}
+          downloadText={downloadText}
+          clearEditor={clearEditor}
+          isFullscreen={isFullscreen}
+          toggleFullscreen={toggleFullscreen}
+          forceSave={forceSave}
+        />
 
         {/* Main Container */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
@@ -53,12 +101,10 @@ const QuillEditor = () => {
                 className="bg-gray-700 text-white px-3 py-2 rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1 min-w-0"
                 placeholder="nama-file"
               />
-              <div className="flex gap-4 text-sm flex-wrap">
+              <div className="flex gap-4 text-sm flex-wrap items-center">
                 <span>Kata: {wordCount}</span>
                 <span>Karakter: {charCount}</span>
-                <span className="text-green-300">
-                  ✅ Format partial tersedia!
-                </span>
+                {getSaveIndicator()}
               </div>
             </div>
           </div>

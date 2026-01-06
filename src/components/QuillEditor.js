@@ -89,7 +89,8 @@ const QuillEditor = () => {
           }}
           title={focusMode ? "Tampilkan Header" : "Sembunyikan Header"}
         >
-          {focusMode ? "☰ Tampilkan" : "🎯 Mode Fokus"}
+          {/* {focusMode ? "☰ Tampilkan" : "🎯 Mode Fokus"} */}
+          {focusMode ? "☰" : "Fokus"}
         </button>
 
         {/* Fullscreen Toggle Button */}
@@ -101,7 +102,7 @@ const QuillEditor = () => {
           }}
           title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
         >
-          {isFullscreen ? "🗗 Exit Fullscreen" : "⛶ Fullscreen"}
+          {isFullscreen ? "🗗" : "⛶"}
         </button>
 
         {/* Download HTML Button */}
@@ -113,7 +114,7 @@ const QuillEditor = () => {
           }}
           title="Download HTML"
         >
-          ⬇️ Download HTML
+          ⬇️
         </button>
       </div>
 
